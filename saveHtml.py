@@ -46,6 +46,7 @@ class saveHtml(object):
         self.css_root_url = link['href']
         index = self.css_root_url.find('tags')
         self.css_root_url = self.css_root_url[0: index+5]
+        link['href'] = '%s' % ('/css/home.css')
         return True
     
     # TODO(oucmath@126.com) 获取html的logo图片，存储到images目录中
@@ -198,6 +199,39 @@ class saveHtml(object):
                 return None
         else:
             return None  
+    
+    # TODO(oucmath@126.com) 获取js并存储到js目录中
+    def get_html_js(self):
+        if None == self.doc_tree:
+            return False
+        scripts = self.doc_tree.find_all('script', {'src': True})
+        if None != scripts:
+            for script in scripts:
+                try:
+                    js_url = script['src']
+                    js = urllib2.urlopen(js_url)
+                    if self.enter_or_create_js_dir(self.root_dir):
+                        js_name = js_url[js_url.rfind('/') + 1:]
+                        js_file = open(js_name, 'wb')
+                        js_file.write(js.read())
+                        js_file.close()
+                        script['src'] = '%s%s' % ('/js/', js_name)
+                except:
+                    self.logger.error('open %s fail' % (script['src'],) )
+        return True
+
+    # TODO(oucmath@126.com) 更新a标签，全部替换为完全地址
+    def update_a_tags(self):
+        if None == self.doc_tree:
+            return False
+        a_tags = self.doc_tree.find_all('a', {'href': True})
+        if None != a_tags:
+            for a_tag in a_tags:
+                a_href = a_tag['href']
+                if a_href.startswith('/'):
+                    a_tag['href'] = '%s%s' % (self.url, a_href)
+        print self.doc_tree
+        return True
 
 if __name__ == '__main__':
     helper = saveHtml()
@@ -206,3 +240,5 @@ if __name__ == '__main__':
     helper.get_raw_html()
     helper.get_html_css()
     helper.handle_css() 
+    helper.get_html_js()
+    helper.update_a_tags()
