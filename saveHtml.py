@@ -22,9 +22,6 @@ class saveHtml(object):
     def init(self, htmlUrl, root_dir):
         self.url = htmlUrl
         self.root_dir = root_dir
-        self.create_images_dir(self.root_dir)
-        self.create_css_dir(self.root_dir)
-        self.create_js_dir(self.root_dir)
         
    
      # TODO(oucmath@126.com) 获取原始的网页
@@ -56,18 +53,19 @@ class saveHtml(object):
         logo_url = 'http://m.sohu.com/images/logo-icon.png'
         try:
            logo = urllib2.urlopen(logo_url)
-           os.chdir(r'%s/%s' % (self.root_dir, 'images'))
-           logo_file = open('logo-icon.png', 'wb')
-           logo_file.write(logo.read())
-           logo_file.close()
-           return True
+           if self.enter_or_create_images_dir(self.root_dir):
+               logo_file = open('logo-icon.png', 'wb')
+               logo_file.write(logo.read())
+               logo_file.close()
+               return True
+           else:
+               return False
         except Exception as e:
-            print e
             self.logger.error('get logo picture:%s fail' % (logo_url, ))
             return False
 
     # TODO(oucmath@126.com) 创建images目录，如果目录不存在则创建
-    def create_images_dir(self, root_dir):
+    def enter_or_create_images_dir(self, root_dir):
         if not os.path.exists(root_dir):
             self.logger.info('create dir %s' % (root_dir, ))
             os.mkdir(root_dir)
@@ -76,10 +74,11 @@ class saveHtml(object):
         if not os.path.exists(images_dir):
             self.logger.info('create dir %s' % (images_dir, ))
             os.mkdir(images_dir)
+        os.chdir(images_dir)
         return True
 
     # TODO(oucmath@126.com) 创建css目录，如果目录不存在则创建
-    def create_css_dir(self, root_dir):
+    def enter_or_create_css_dir(self, root_dir):
         if not os.path.exists(root_dir):
             self.logger.info('create dir %s' % (root_dir, ))
             os.mkdir(root_dir)
@@ -88,10 +87,11 @@ class saveHtml(object):
         if not os.path.exists(css_dir):
             self.logger.info('create dir %s' % (css_dir, ))
             os.mkdir(css_dir)
+        os.chdir(css_dir)
         return True
 
     # TODO(oucmath@126.com) 创建js目录，如果目录不存在则创建
-    def create_js_dir(self, root_dir):
+    def enter_or_create_js_dir(self, root_dir):
         if not os.path.exists(root_dir):
             self.logger.info('create dir %s' % (root_dir, ))
             os.mkdir(root_dir)
@@ -100,16 +100,109 @@ class saveHtml(object):
         if not os.path.exists(js_dir):
             self.logger.info('create dir %s' % (js_dir, ))
             os.mkdir(js_dir)
+        os.chdir(js_dir)
         return True
     
     # TODO(oucmath@126.com) 获取网页的css文件(网页只有一个css)
     def get_html_css(self):
-        pass
+        if None == self.doc_tree:
+            return False
+        link = self.doc_tree.find('link', {'type': 'text/css'})
+        css_url = link['href']
+        try:
+            css = urllib2.urlopen(css_url)
+            if self.enter_or_create_css_dir(self.root_dir):
+                css_file = open('home.css', 'wb')
+                css_file.write(css.read())
+                css_file.close()
+                return True
+            else:
+                return False
+        except:
+            self.logger.error('get home.css fail')
+            return False
 
+    # TODO(oucmath@126.com)
+    def handle_css(self):
+        """
+        处理home.css,获取home.css中用到的图片，并将图片的远程地址替换为本地地址
+        """
+        if self.enter_or_create_css_dir(self.root_dir):
+            try:
+                css_file_in = open('home.css', 'r')
+                css_file_out = open('home_back.css', 'w')
+                line = css_file_in.readline()
+                css_file_out.write(line)
+                line = css_file_in.readline()
+                modified_line = self.modify_css(line)
+                css_file_out.write(modified_line)
+                css_file_in.close()
+                css_file_out.close()
+                if self.enter_or_create_css_dir(self.root_dir):
+                    os.remove('home.css')
+                    os.rename('home_back.css', 'home.css')
+                return True
+            except Exception as e:
+                print e
+                self.logger.error('open home.css error')
+                return False
+        else:
+            return False
+
+    # TODO(oucmath@126.com) 修改css文件
+    def modify_css(self, css):
+        self.get_css_root_url()
+        modified_line = ''
+        last_pos = 0
+        next_pos = css.find('url(', last_pos)
+        while next_pos > 0:
+            modified_line = '%s%s' % (modified_line, 
+                                    css[last_pos: next_pos + 3])     
+            last_pos = next_pos + 3
+            next_pos = css.find(')', last_pos)
+            pic_url = css[last_pos + 1: next_pos]
+            local_pic_url = self.pic_download(pic_url)
+            modified_line = '%s(%s' % (modified_line, local_pic_url)
+            last_pos = next_pos
+            next_pos = css.find('url(', last_pos)
+        modified_line = '%s%s' % (modified_line, 
+                                  css[last_pos:]) 
+        return modified_line
+
+    # TODO(oucmath@126.com) 根据pic的url获取pic并存档
+    def pic_download(self, pic_url):
+        if self.enter_or_create_images_dir(self.root_dir):
+            try:
+                pic_dir = ''
+                last_slash = pic_url.rfind('/')
+                pic_name = pic_url[last_slash + 1:]
+                if 'http' in pic_url:
+                    pic = urllib2.urlopen(pic_url)
+                    upper_slash = pic_url.rfind('/', 0, last_slash)
+                    pic_dir = pic_url[upper_slash + 1: last_slash]
+                else:
+                    pic_dir = pic_url[6: last_slash]
+                    pic_url = '%s%s/%s' %  (self.css_root_url, 
+                                            pic_dir, pic_name)
+                    pic = urllib2.urlopen(pic_url)
+                if not os.path.exists(os.path.join(os.getcwd(), pic_dir)):
+                    os.mkdir(os.path.join(os.getcwd(), pic_dir))
+                os.chdir(os.path.join(os.getcwd(), pic_dir))
+                pic_file = open(pic_name, 'wb')
+                pic_file.write(pic.read())
+                pic_file.close()
+                return '%s/%s/%s' % ('images', pic_dir, pic_name)
+            except Exception as e:
+                print e
+                self.logger.error('download pic:%s fail' % (pic_url, ))
+                return None
+        else:
+            return None  
 
 if __name__ == '__main__':
     helper = saveHtml()
     helper.init('http://m.sohu.com', '/home/arthur/test')
     helper.get_html_logo()
     helper.get_raw_html()
-    
+    helper.get_html_css()
+    helper.handle_css() 
