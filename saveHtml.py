@@ -46,7 +46,7 @@ class saveHtml(object):
         self.css_root_url = link['href']
         index = self.css_root_url.find('tags')
         self.css_root_url = self.css_root_url[0: index+5]
-        link['href'] = '%s' % ('/css/home.css')
+        link['href'] = '%s' % ('css/home.css')
         return True
     
     # TODO(oucmath@126.com) 获取html的logo图片，存储到images目录中
@@ -58,6 +58,8 @@ class saveHtml(object):
                logo_file = open('logo-icon.png', 'wb')
                logo_file.write(logo.read())
                logo_file.close()
+               link = self.doc_tree.find('link')
+               link['href'] = '%s' % ('images/logo-icon.png')
                return True
            else:
                return False
@@ -215,7 +217,7 @@ class saveHtml(object):
                         js_file = open(js_name, 'wb')
                         js_file.write(js.read())
                         js_file.close()
-                        script['src'] = '%s%s' % ('/js/', js_name)
+                        script['src'] = '%s%s' % ('js/', js_name)
                 except:
                     self.logger.error('open %s fail' % (script['src'],) )
         return True
@@ -230,15 +232,50 @@ class saveHtml(object):
                 a_href = a_tag['href']
                 if a_href.startswith('/'):
                     a_tag['href'] = '%s%s' % (self.url, a_href)
-        print self.doc_tree
         return True
+
+    # TODO(oucmath@126.com) 下载全部图片，并修改html的地址
+    def update_img_tags(self):
+        if None == self.doc_tree:
+            return None
+        img_tags = self.doc_tree.find_all('img', {'src': True})
+        if None != img_tags:
+            for img_tag in img_tags:
+                img_href = img_tag['src']
+                if img_href.startswith('/'):
+                    img_href = '%s%s' % (self.url, img_href)
+                local_img_dir = self.pic_download(img_href)
+                img_tag['src'] = local_img_dir
+                try:
+                    original = img_tag['original']
+                    if original.startswith('/'):
+                        original = '%S%s' % (self.url, original)
+                    local_img = self.pic_download(original)
+                    img_tag['original'] = local_img
+                except:
+                    pass
+        return True
+
+    # TODO(oucmath@126.com) save the doc_tree to index.html
+    def save_doc_tree(self):
+        os.chdir(self.root_dir)
+        out = open('index.html', 'w')
+        out.write('%s' % (self.doc_tree, ))
+        out.close()
+    
+    # TODO(oucmath@126.com) this function is used to save a single html
+    def save(self):
+        self.get_html_logo()
+        self.get_raw_html()
+        self.get_html_css()
+        self.handle_css()
+        self.get_html_js()
+        self.update_a_tags()
+        self.update_img_tags()
+        self.save_doc_tree()
+        
 
 if __name__ == '__main__':
     helper = saveHtml()
     helper.init('http://m.sohu.com', '/home/arthur/test')
-    helper.get_html_logo()
-    helper.get_raw_html()
-    helper.get_html_css()
-    helper.handle_css() 
-    helper.get_html_js()
-    helper.update_a_tags()
+    helper.save()
