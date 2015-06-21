@@ -165,7 +165,7 @@ class saveHtml(object):
             next_pos = css.find(')', last_pos)
             pic_url = css[last_pos + 1: next_pos]
             local_pic_url = self.pic_download(pic_url)
-            modified_line = '%s(%s' % (modified_line, local_pic_url)
+            modified_line = '%s(.././%s' % (modified_line, local_pic_url)
             last_pos = next_pos
             next_pos = css.find('url(', last_pos)
         modified_line = '%s%s' % (modified_line, 
