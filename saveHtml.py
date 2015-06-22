@@ -4,6 +4,7 @@ import urllib2
 from bs4 import BeautifulSoup
 from Logger import Logger
 import os
+import re
 
 class saveHtml(object):
     """
@@ -33,6 +34,7 @@ class saveHtml(object):
             self.html = urllib2.urlopen(self.url)
             self.doc_tree = BeautifulSoup(self.html.read(), 
                             from_encoding='utf-8')
+         
             return True
         except Exception as e:
             self.logger.error('网页无法获取')
@@ -191,9 +193,10 @@ class saveHtml(object):
                 if not os.path.exists(os.path.join(os.getcwd(), pic_dir)):
                     os.mkdir(os.path.join(os.getcwd(), pic_dir))
                 os.chdir(os.path.join(os.getcwd(), pic_dir))
-                pic_file = open(pic_name, 'wb')
-                pic_file.write(pic.read())
-                pic_file.close()
+                if not os.path.exists(pic_name):
+                    pic_file = open(pic_name, 'wb')
+                    pic_file.write(pic.read())
+                    pic_file.close()
                 return '%s/%s/%s' % ('images', pic_dir, pic_name)
             except Exception as e:
                 print e
@@ -221,6 +224,24 @@ class saveHtml(object):
                 except:
                     self.logger.error('open %s fail' % (script['src'],) )
         return True
+        
+    # TODO(oucmath@126.com) 获取js_home.map
+    def get_home_js_map(self):
+        if self.enter_or_create_js_dir(self.root_dir):
+            try:
+                js_name = open('home.js','r')
+                line = js_name.readline()
+                search = re.search('version:(.*),', line)
+                file_dir = search.group(1)
+                file_url = 'http://s1.rr.itc.cn/h5/js/tags/v3/msohu/%s/%s' % (file_dir, 
+                            'home_js.map')
+                home_js = open('home_js.map', 'wb')
+                home_js.write(urllib2.urlopen(file_url).read())
+                home_js.close()
+            except Exception as e:
+               self.logger.error('open home.js error')
+               return False
+            return True
 
     # TODO(oucmath@126.com) 更新a标签，全部替换为完全地址
     def update_a_tags(self):
@@ -270,6 +291,7 @@ class saveHtml(object):
         self.get_html_css()
         self.handle_css()
         self.get_html_js()
+        self.get_home_js_map()
         self.update_a_tags()
         self.update_img_tags()
         self.save_doc_tree()
