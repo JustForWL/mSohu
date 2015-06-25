@@ -6,6 +6,17 @@ from Logger import Logger
 import os
 import re
 
+# TODO(oucmath@126) 根据目录的名字，创建制定目录
+def enter_or_create_dir(root_dir, sub_dir):
+    if not os.path.exists(root_dir):
+        os.mkdir(root_dir)
+    os.chdir(root_dir)
+    sub_dir = '%s/%s' % (root_dir, sub_dir)
+    if not os.path.exists(sub_dir):
+        os.mkdir(sub_dir)
+    os.chdir(sub_dir)
+    return True
+
 class saveHtml(object):
     """
         获取网页的html并存储，以及获取相应的js，css和imgs
@@ -56,7 +67,7 @@ class saveHtml(object):
         logo_url = 'http://m.sohu.com/images/logo-icon.png'
         try:
            logo = urllib2.urlopen(logo_url)
-           if self.enter_or_create_images_dir(self.root_dir):
+           if enter_or_create_dir(self.root_dir, 'images'):
                logo_file = open('logo-icon.png', 'wb')
                logo_file.write(logo.read())
                logo_file.close()
@@ -69,45 +80,6 @@ class saveHtml(object):
             self.logger.error('get logo picture:%s fail' % (logo_url, ))
             return False
 
-    # TODO(oucmath@126.com) 创建images目录，如果目录不存在则创建
-    def enter_or_create_images_dir(self, root_dir):
-        if not os.path.exists(root_dir):
-            self.logger.info('create dir %s' % (root_dir, ))
-            os.mkdir(root_dir)
-        os.chdir(root_dir)
-        images_dir = r'%s/%s' % (root_dir, 'images')
-        if not os.path.exists(images_dir):
-            self.logger.info('create dir %s' % (images_dir, ))
-            os.mkdir(images_dir)
-        os.chdir(images_dir)
-        return True
-
-    # TODO(oucmath@126.com) 创建css目录，如果目录不存在则创建
-    def enter_or_create_css_dir(self, root_dir):
-        if not os.path.exists(root_dir):
-            self.logger.info('create dir %s' % (root_dir, ))
-            os.mkdir(root_dir)
-        os.chdir(root_dir)
-        css_dir = r'%s/%s' % (root_dir, 'css')
-        if not os.path.exists(css_dir):
-            self.logger.info('create dir %s' % (css_dir, ))
-            os.mkdir(css_dir)
-        os.chdir(css_dir)
-        return True
-
-    # TODO(oucmath@126.com) 创建js目录，如果目录不存在则创建
-    def enter_or_create_js_dir(self, root_dir):
-        if not os.path.exists(root_dir):
-            self.logger.info('create dir %s' % (root_dir, ))
-            os.mkdir(root_dir)
-        os.chdir(root_dir)
-        js_dir = r'%s/%s' % (root_dir, 'js')
-        if not os.path.exists(js_dir):
-            self.logger.info('create dir %s' % (js_dir, ))
-            os.mkdir(js_dir)
-        os.chdir(js_dir)
-        return True
-    
     # TODO(oucmath@126.com) 获取网页的css文件(网页只有一个css)
     def get_html_css(self):
         if None == self.doc_tree:
@@ -116,7 +88,7 @@ class saveHtml(object):
         css_url = link['href']
         try:
             css = urllib2.urlopen(css_url)
-            if self.enter_or_create_css_dir(self.root_dir):
+            if enter_or_create_dir(self.root_dir, 'css'):
                 css_file = open('home.css', 'wb')
                 css_file.write(css.read())
                 css_file.close()
@@ -132,7 +104,7 @@ class saveHtml(object):
         """
         处理home.css,获取home.css中用到的图片，并将图片的远程地址替换为本地地址
         """
-        if self.enter_or_create_css_dir(self.root_dir):
+        if enter_or_create_dir(self.root_dir, 'css'):
             try:
                 css_file_in = open('home.css', 'r')
                 css_file_out = open('home_back.css', 'w')
@@ -143,7 +115,7 @@ class saveHtml(object):
                 css_file_out.write(modified_line)
                 css_file_in.close()
                 css_file_out.close()
-                if self.enter_or_create_css_dir(self.root_dir):
+                if enter_or_create_dir(self.root_dir, 'css'):
                     os.remove('home.css')
                     os.rename('home_back.css', 'home.css')
                 return True
@@ -176,7 +148,7 @@ class saveHtml(object):
 
     # TODO(oucmath@126.com) 根据pic的url获取pic并存档
     def pic_download(self, pic_url):
-        if self.enter_or_create_images_dir(self.root_dir):
+        if enter_or_create_dir(self.root_dir, 'images'):
             try:
                 pic_dir = ''
                 last_slash = pic_url.rfind('/')
@@ -215,7 +187,7 @@ class saveHtml(object):
                 try:
                     js_url = script['src']
                     js = urllib2.urlopen(js_url)
-                    if self.enter_or_create_js_dir(self.root_dir):
+                    if enter_or_create_dir(self.root_dir, 'js'):
                         js_name = js_url[js_url.rfind('/') + 1:]
                         js_file = open(js_name, 'wb')
                         js_file.write(js.read())
@@ -227,7 +199,7 @@ class saveHtml(object):
         
     # TODO(oucmath@126.com) 获取js_home.map
     def get_home_js_map(self):
-        if self.enter_or_create_js_dir(self.root_dir):
+        if enter_or_create_dir(self.root_dir,'js'):
             try:
                 js_name = open('home.js','r')
                 line = js_name.readline()
